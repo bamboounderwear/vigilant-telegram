@@ -1,7 +1,6 @@
 var gulp = require('gulp');
 var plumber = require('gulp-plumber');
 var cleanCSS = require('gulp-clean-css');
-var sass = require('gulp-dart-sass');
 var clean = require('gulp-clean');
 var browserSync = require('browser-sync').create();
 var rename = require('gulp-rename');
@@ -9,9 +8,15 @@ const purgecss = require('gulp-purgecss');
 const imagemin = require('gulp-imagemin');
 const htmlmin = require('gulp-htmlmin');
 var htmlreplace = require('gulp-html-replace');
-var reload      = browserSync.reload;
+var reload = browserSync.reload;
+
+// Initialize gulp-sass with sass compiler
+const gulpSass = require('gulp-sass');
+const dartSass = require('sass');
+const sass = gulpSass(dartSass);
+
 // Configuration file to keep your code DRY
-var cfg = require( './gulpconfig.json' );
+var cfg = require('./gulpconfig.json');
 var paths = cfg.paths;
 
 gulp.task('dist-assets', function (done) {
@@ -19,9 +24,9 @@ gulp.task('dist-assets', function (done) {
         .pipe(gulp.dest('./dev/js'));
     gulp.src('./src/img/**.*')
         .pipe(gulp.dest('./dev/img'));
-        gulp.src('./src/fonts/**.*')
-            .pipe(gulp.dest('./dev/fonts'));
-      done();
+    gulp.src('./src/fonts/**.*')
+        .pipe(gulp.dest('./dev/fonts'));
+    done();
 });
 
 gulp.task('prod-copy', function (done) {
@@ -36,7 +41,7 @@ gulp.task('minify-css', () => {
     .pipe(cleanCSS({
       compatibility: 'ie8'
     }))
-    .pipe( rename( { suffix: '.min' } ) )
+    .pipe(rename({ suffix: '.min' }))
     .pipe(gulp.dest('dev/css'))
     .pipe(browserSync.stream());
 });
@@ -48,16 +53,15 @@ gulp.task('minify-html', () => {
     .pipe(gulp.dest('public'));
 });
 
-
 // Purging unused CSS
 gulp.task('purgecss', () => {
     return gulp.src('public/css/theme.min.css')
         .pipe(purgecss({
             content: ['public/**/*.html'],
-            safelist: ['collapsed', 'collapse', 'active', 'show', 'collapsing' ]
+            safelist: ['collapsed', 'collapse', 'active', 'show', 'collapsing']
         }))
         .pipe(gulp.dest('public/css'))
-})
+});
 
 gulp.task('clean-public', function() {
   return gulp.src('public', {
@@ -66,7 +70,6 @@ gulp.task('clean-public', function() {
     })
     .on('error', function(err) {
       console.log(err.toString());
-
       this.emit('end');
     })
     .pipe(clean());
@@ -79,7 +82,6 @@ gulp.task('clean-dev', function() {
     })
     .on('error', function(err) {
       console.log(err.toString());
-
       this.emit('end');
     })
     .pipe(clean());
@@ -91,7 +93,6 @@ gulp.task('clean', function() {
     })
     .on('error', function(err) {
       console.log(err.toString());
-
       this.emit('end');
     })
     .pipe(clean());
@@ -103,14 +104,17 @@ gulp.task('browser-sync', function(done) {
             baseDir: "./dev"
         }
     });
-gulp.watch("dev/**/*.*").on('change', browserSync.reload);
+    gulp.watch("dev/**/*.*").on('change', browserSync.reload);
+    done();
 });
 
-// Compile sass to css
+// Compile sass to css using Dart Sass
 gulp.task('sass', function () {
   return gulp.src('src/scss/theme.scss')
+    .pipe(plumber())
     .pipe(sass().on('error', sass.logError))
     .pipe(gulp.dest('dev/css'))
+    .pipe(browserSync.stream());
 });
 
 gulp.task('inject-min-css', function(done) {
@@ -119,23 +123,22 @@ gulp.task('inject-min-css', function(done) {
         'css': '/css/theme.min.css'
     }))
     .pipe(gulp.dest('./public'));
-         done();
+    done();
 });
 
 ////////////////// All Bootstrap SASS  Assets /////////////////////////
-gulp.task( 'copy-assets', function( done ) {
-	////////////////// All Bootstrap 4 Assets /////////////////////////
-	// Copy all JS files
-	var stream = gulp
-		.src( paths.node + '/bootstrap/dist/js/**/*.*' )
-		.pipe( gulp.dest( paths.dev + '/js' ) );
+gulp.task('copy-assets', function(done) {
+  ////////////////// All Bootstrap 4 Assets /////////////////////////
+  // Copy all JS files
+  var stream = gulp
+    .src(paths.node + '/bootstrap/dist/js/**/*.*')
+    .pipe(gulp.dest(paths.dev + '/js'));
 
-	// Copy all Bootstrap SCSS files
-	gulp
-		.src( paths.node + '/bootstrap/scss/**/*.scss' )
-		.pipe( gulp.dest( paths.dev + '/scss/assets/bootstrap' ) );
+  // Copy all Bootstrap SCSS files
+  gulp
+    .src(paths.node + '/bootstrap/scss/**/*.scss')
+    .pipe(gulp.dest(paths.dev + '/scss/assets/bootstrap'));
 
-	////////////////// End Bootstrap 4 Assets /////////////////////////
-
-	done();
-} );
+  ////////////////// End Bootstrap 4 Assets /////////////////////////
+  done();
+});
